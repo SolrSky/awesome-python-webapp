@@ -247,3 +247,49 @@ def transaction():
 	'''
 	return _TransactionCtx()
 
+def with_transaction(func):
+	'''
+	A decorator that makes function around transaction.
+	'''
+	@functools.wraps(func)
+	def _wrapper(*args, **kw):
+		_start = time.time()
+		with _TransactionCtx():
+			return func(*args, **kw)
+		_profiling(_start)
+	return _wrapper
+
+def _select(sql, first, *args):
+	' execute select SQL and return unique result or list results.'
+	global _db_ctx
+	cursor = None
+	sql = sql.replace('?','%s')
+	logging.info('SQL: %s, ARGS: %s' % (sql, args))
+	try:
+		cursor = _db_ctx.connection.cursor()
+		cursor.execute(sql, args)
+		if cursor.description:
+			names = [x[0] for x in cursor.description]
+		if first:
+			values = cursor.fetchone()
+			if not values:
+				return None
+			return Dict(names, values)
+		return [Dict(names, x) for x in cursor.fetchall()]
+	finally:
+		if cursor:
+			cursor.close()
+
+@with_connection
+def select_one(sql, *args):
+	'''
+	Execute select SQL and expected one result.
+	if no result found, return None.
+	if multiple results found, return the first one.
+	'''
+	return _select(sql, True, *args)
+
+@with_connection
+def select_int(sql, *args)
+	'''
+	Execute select SQL and expected one int and only one int result.
