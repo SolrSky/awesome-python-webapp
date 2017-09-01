@@ -17,7 +17,7 @@ sys.setdefaultencoding('utf-8')
 Database operation module
 '''
 
-import time,uuid,functools,treading,logging
+import time,uuid,functools,threading,logging
 
 # Dict Object
 
