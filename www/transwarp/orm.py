@@ -29,7 +29,7 @@ class Field(object):
 		self._default = kw.get('default', None)
 		self.primary_key = kw.get('primary_key', None)
 		self.nullable = kw.get('nullable', None)
-		self.updatable = ke.get('updatable', None)
+		self.updatable = kw.get('updatable', None)
 		self.insertable = kw.get('insertable', None)
 		self.ddl = kw.get('ddl', '')
 		self._order = Field._count
@@ -114,7 +114,7 @@ def _gen_sql(table_name, mappings):
 	sql = ['-- generating SQL for %s:' % table_name, 'create table `%s` (' %table_name]
 	for f in sorted(mappings.values(), lambda x, y: cmp(x._order, y._order)):
 		if not hasattr(f, 'ddl'):
-			raise StandardError('no ddl in field "%s".' % n)
+			raise StandardError('no ddl in field "%s".' % f)
 		ddl = f.ddl
 		nullable = f.nullable
 		if f.primary_key:
@@ -193,5 +193,115 @@ class Model(dict):
 
 	def __setattr__(self, key, value):
 		self[key] = value
+
+
+	@classmethod
+	def get(cls, pk):
+		'''
+		Get by primary key
+		:param pk:
+		:return:
+		'''
+		d = db.select_one('select * from %s where %s = ?' % (cls.__table__, cls.__primary_key__.name), pk)
+		return cls(**d) if d else None
+
+
+	@classmethod
+	def find_first(cls, where, *args):
+		'''
+		Find by where clause and return one result. If multiple results found, only the first one returned.
+		If no result found, return None.
+		:param where:
+		:param args:
+		:return:
+		'''
+		d = db.select_one('select * from %s %s' % (cls.__table__, where), *args)
+		return cls(**d) if d else None
+
+
+	@classmethod
+	def find_all(cls, *args):
+		'''
+		Find all and return list.
+		'''
+		L = db.select('select * from %s' % cls.__table__)
+		return [cls(**d) for d in L]
+
+
+	@classmethod
+	def find_by(cls, where, *args):
+		'''
+		Find by where clause and return list.
+		'''
+		L = db.select('select * from %s %s' % (cls.__table__, where), *args)
+		return [cls(**d) for d in L]
+
+
+	@classmethod
+	def count_all(cls):
+		'''
+		Find by 'select count(pk) from table' and return integer.
+		'''
+		d = db.select_int('select count(%s) from %s' % (cls.__primary_key__, cls.__table__))
+		return d
+
+
+	@classmethod
+	def count_by(cls, where, *args):
+		'''
+		Find by 'select count(pk) from table where...' and return integer.
+		'''
+		d = db.select_int('select count(%s) from %s %s' % (cls.__primary_key__, cls.__table, where), *args)
+		return d
+
+
+	def update(self):
+		self.pre_update and self.pre_update()
+		L = []
+		args = []
+		for k, v in self.__mappings__.iteritems():
+			if v.updatable:
+				if hasattr(self, k):
+					arg = getattr(self, k)
+				else:
+					arg = v.default
+					setattr(self, k, arg)
+				L.append(self, k, arg)
+				args.append(arg)
+		pk = self.__primary_key__.name
+		args.append(getattr(self, pk))
+		db.update('update `%s` set %s where %s=?' % (self.__table__, ','.join(L), pk), *args)
+		return self
+
+
+	def delete(self):
+		self.pre_delete and self.pre_delete()
+		pk = self.__primary_key__.name
+		args = (getattr(self, pk), )
+		db.update('delete from `%s` where `%s` = ?' % (self.__table__. pk), args)
+		return self
+
+	def insert(self):
+		self.pre_insert and self.pre_insert()
+		params = {}
+		for k, v in self.__mappings__.iteritems():
+			if v.insertable:
+				if not hasattr(self, k):
+					setattr(self, k, v.default)
+				params[v.name] = getattr(self, k)
+		db.insert('%s' % self.__table__, **params)
+		return self
+
+
+
+if __name__=='__main__':
+	logging.basicConfig(level=logging.DEBUG)
+	db.create_engine('www-data', 'www-data', 'test')
+	db.update('drop table if exists user')
+	db.update('create table user (id int primary key, name text, email text, passwd text, last_modified real)')
+	import doctest
+	doctest.testmod()
+
+
 
 	

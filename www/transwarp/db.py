@@ -163,30 +163,35 @@ class _ConnectionCtx(object):
 			self.should_cleanup = True
 		return self
 
-	def connection():
-		'''
-		Return _ConnectionCtx object that can be used by 'with' statement:
-		with connection():
-			pass
-		'''
-		return _ConnectionCtx
+	def __exit__(self, exctype, excvalue, traceback):
+		global _db_ctx
+		if self.should_cleanup:
+			_db_ctx.cleanup()
 
-	def with_connection(func):
-		'''
-		Decorator for reuse connection.
+def connection():
+	'''
+	Return _ConnectionCtx object that can be used by 'with' statement:
+	with connection():
+		pass
+	'''
+	return _ConnectionCtx
 
-		@with_connection
-		def foo(*args, **kw)
-			f1()
-			f2()
-			f3()
-		'''
+def with_connection(func):
+	'''
+	Decorator for reuse connection.
+	
+	@with_connection
+	def foo(*args, **kw)
+		f1()
+		f2()
+		f3()
+	'''
 
-		@functools.wraps(func)
-		def _wrapper(*args, **kw):
-			with _ConnectionCtx():
-				return func(*args,**kw)
-		return _wrapper
+	@functools.wraps(func)
+	def _wrapper(*args, **kw):
+		with _ConnectionCtx():
+			return func(*args,**kw)
+	return _wrapper
 
 class _TransactionCtx(object):
 	'''
