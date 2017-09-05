@@ -293,7 +293,6 @@ class Model(dict):
 		return self
 
 
-
 if __name__=='__main__':
 	logging.basicConfig(level=logging.DEBUG)
 	db.create_engine('www-data', 'www-data', 'test')
