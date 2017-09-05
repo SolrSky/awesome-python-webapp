@@ -27,10 +27,10 @@ class Field(object):
 	def __init__(self, **kw):
 		self.name = kw.get('name', None)
 		self._default = kw.get('default', None)
-		self.primary_key = kw.get('primary_key', None)
-		self.nullable = kw.get('nullable', None)
-		self.updatable = kw.get('updatable', None)
-		self.insertable = kw.get('insertable', None)
+		self.primary_key = kw.get('primary_key', False)
+		self.nullable = kw.get('nullable', False)
+		self.updatable = kw.get('updatable', True)
+		self.insertable = kw.get('insertable', True)
 		self.ddl = kw.get('ddl', '')
 		self._order = Field._count
 		Field._count = Field._count + 1
@@ -278,7 +278,7 @@ class Model(dict):
 		self.pre_delete and self.pre_delete()
 		pk = self.__primary_key__.name
 		args = (getattr(self, pk), )
-		db.update('delete from `%s` where `%s` = ?' % (self.__table__. pk), args)
+		db.update('delete from `%s` where `%s` = ?' % (self.__table__, pk), *args)
 		return self
 
 	def insert(self):

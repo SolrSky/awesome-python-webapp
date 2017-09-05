@@ -11,7 +11,7 @@ from models import User, Blog, Comment
 from transwarp import  db
 
 
-db.create_engine(user='www-data', password='www-data', database='awesome')
+db.create_engine(user='www-data', password='www-data', database='awesome', host='localhost', port='3306')
 
 u = User(name='Test', email='test@example.com', password='123456', image='http://img.qfc.cn/upload/01/certificate/02/0d/705808.jpg')
 
